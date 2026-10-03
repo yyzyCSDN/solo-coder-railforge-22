@@ -32,17 +32,3 @@ def classify(cuts: list[Cut], tracks: list[Track], occupied: dict[str, int]):
         result[c.cut_id] = tid
         remain[tid] -= c.wagons
     return result
-
-
-_railforge_original_classify = classify
-def classify(cuts, tracks, occupied):
-    remain = {t.track_id: t.capacity - occupied.get(t.track_id, 0) for t in tracks}
-    result = {}
-    for c in sorted(cuts, key=lambda c: (-c.wagons, c.destination, c.cut_id)):
-        choices = [(remain[t.track_id] - c.wagons, t.track_id) for t in tracks
-                   if c.destination in t.destinations and c.wagons <= remain[t.track_id]
-                   and not (c.hazard_group and c.hazard_group in t.forbidden_hazard)]
-        if not choices:
-            raise ValueError("no classification track for " + c.cut_id)
-        result[c.cut_id] = min(choices)[1]
-    return result

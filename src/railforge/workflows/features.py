@@ -56,9 +56,13 @@ class RailForgeFeatureService:
             return {"clear": True, "wagons": len(wagons)}
         return self.control.run(operation_id, "feature.route.clearance", operation_id, at, action)
 
-    def rebalance_yard(self, operation_id, cuts, tracks, occupied, route, switches, owner, at):
+    def rebalance_yard(self, operation_id, cuts, tracks, occupied, route, switches, owner, at,
+                       hazard_conflicts=None):
+        # One atomic commit: cumulative track capacity, hazmat incompatibility and the
+        # route lock are all decided inside action(); any failed batch raises before the
+        # store write, event publish and audit append, so the whole re-marshalling rolls back.
         def action():
-            assignment = classify(cuts, tracks, occupied)
+            assignment = classify(cuts, tracks, occupied, hazard_conflicts)
             locked = lock_route(route, switches, owner)
             return {"assignment": assignment, "switches": locked}
         return self.control.run(operation_id, "feature.yard.rebalance", operation_id, at, action)
